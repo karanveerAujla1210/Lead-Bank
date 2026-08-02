@@ -5,11 +5,11 @@ import { z } from 'zod';
 export const maxDuration = 60;
 
 const recordSchema = z.object({
-  customer_name: z.string().min(2),
+  customer_name: z.string().trim().min(1),
   mobile: z.string().regex(/^\d{10}$/, 'Mobile must be exactly 10 digits'),
-  source: z.string().min(2),
-  city: z.string().min(2),
-  remarks: z.string().min(2),
+  source: z.string().default(''),
+  city: z.string().default(''),
+  remarks: z.string().default(''),
 });
 
 export async function POST(request: Request) {

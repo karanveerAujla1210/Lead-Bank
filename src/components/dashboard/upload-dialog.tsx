@@ -66,7 +66,7 @@ export function UploadDialog({ open, onClose, onUploaded }: { open: boolean; onC
 
       for (const record of normalizedRecords) {
         const normalizedMobile = sanitizeMobile(record.mobile);
-        if (!record.customer_name || !record.source || !record.city || !record.remarks || normalizedMobile.length !== 10) {
+        if (!record.customer_name || normalizedMobile.length !== 10) {
           invalid += 1;
           continue;
         }
