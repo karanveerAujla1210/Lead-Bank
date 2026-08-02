@@ -11,11 +11,27 @@ function normalizeRecord(row: Record<string, string | undefined>): LeadInput {
     Object.entries(row).map(([key, value]) => [key.trim().toLowerCase().replace(/\s+/g, '_'), value]),
   );
 
-  const customer_name = String(normalizedRow.customer_name ?? normalizedRow.customername ?? '').trim();
-  const mobile = String(normalizedRow.mobile ?? '').trim();
-  const source = String(normalizedRow.source ?? '').trim();
-  const city = String(normalizedRow.city ?? '').trim();
-  const remarks = String(normalizedRow.remarks ?? '').trim();
+  const customer_name = String(
+    normalizedRow.customer_name ??
+    normalizedRow.customername ??
+    normalizedRow.name ??
+    normalizedRow.fullname ??
+    normalizedRow.full_name ??
+    normalizedRow.customer ??
+    normalizedRow.client_name ??
+    '',
+  ).trim();
+  const mobile = String(
+    normalizedRow.mobile ??
+    normalizedRow.phone ??
+    normalizedRow.phone_number ??
+    normalizedRow.contact ??
+    normalizedRow.contact_number ??
+    '',
+  ).trim();
+  const source = String(normalizedRow.source ?? normalizedRow.lead_source ?? '').trim();
+  const city = String(normalizedRow.city ?? normalizedRow.location ?? normalizedRow.town ?? '').trim();
+  const remarks = String(normalizedRow.remarks ?? normalizedRow.notes ?? normalizedRow.comment ?? '').trim();
   return { customer_name, mobile, source, city, remarks };
 }
 
