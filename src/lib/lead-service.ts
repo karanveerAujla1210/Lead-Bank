@@ -179,7 +179,19 @@ export async function importLeads(records: LeadInput[]) {
   const supabase = await createServerSupabaseClient();
   const payload = records.map((record) => normalizeLeadPayload(record));
 
-  const { data, error } = await supabase.from('lead_bank').insert(payload).select();
-  if (error) throw error;
-  return data as Lead[];
+  if (payload.length === 0) {
+    return [] as Lead[];
+  }
+
+  const batchSize = 200;
+  const inserted: Lead[] = [];
+
+  for (let index = 0; index < payload.length; index += batchSize) {
+    const batch = payload.slice(index, index + batchSize);
+    const { data, error } = await supabase.from('lead_bank').insert(batch).select();
+    if (error) throw error;
+    inserted.push(...((data ?? []) as Lead[]));
+  }
+
+  return inserted;
 }

@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { importLeads } from '@/lib/lead-service';
 import { z } from 'zod';
 
+export const maxDuration = 60;
+
 const recordSchema = z.object({
   customer_name: z.string().min(2),
   mobile: z.string().regex(/^\d{10}$/, 'Mobile must be exactly 10 digits'),

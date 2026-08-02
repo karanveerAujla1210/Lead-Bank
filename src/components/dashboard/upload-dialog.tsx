@@ -7,16 +7,39 @@ import * as XLSX from 'xlsx';
 import type { LeadInput } from '@/lib/types';
 
 function normalizeRecord(row: Record<string, string | undefined>): LeadInput {
-  const customer_name = String(row.customer_name ?? row.CustomerName ?? '').trim();
-  const mobile = String(row.mobile ?? row.Mobile ?? '').trim();
-  const source = String(row.source ?? row.Source ?? '').trim();
-  const city = String(row.city ?? row.City ?? '').trim();
-  const remarks = String(row.remarks ?? row.Remarks ?? '').trim();
+  const normalizedRow = Object.fromEntries(
+    Object.entries(row).map(([key, value]) => [key.trim().toLowerCase().replace(/\s+/g, '_'), value]),
+  );
+
+  const customer_name = String(normalizedRow.customer_name ?? normalizedRow.customername ?? '').trim();
+  const mobile = String(normalizedRow.mobile ?? '').trim();
+  const source = String(normalizedRow.source ?? '').trim();
+  const city = String(normalizedRow.city ?? '').trim();
+  const remarks = String(normalizedRow.remarks ?? '').trim();
   return { customer_name, mobile, source, city, remarks };
 }
 
 function sanitizeMobile(value: string) {
   return value.replace(/\D/g, '').replace(/^91/, '').slice(-10);
+}
+
+async function parseUploadFile(file: File) {
+  if (file.name.toLowerCase().endsWith('.xlsx') || file.name.toLowerCase().endsWith('.xls')) {
+    const buffer = await file.arrayBuffer();
+    const workbook = XLSX.read(buffer, { type: 'array' });
+    const sheet = workbook.Sheets[workbook.SheetNames[0]];
+    return XLSX.utils.sheet_to_json<Record<string, string>>(sheet, { defval: '' });
+  }
+
+  return await new Promise<Record<string, string>[]>((resolve) => {
+    Papa.parse<Record<string, string>>(file, {
+      header: true,
+      skipEmptyLines: true,
+      fastMode: true,
+      transformHeader: (header) => header.trim().toLowerCase().replace(/\s+/g, '_'),
+      complete: (results) => resolve(results.data ?? []),
+    });
+  });
 }
 
 export function UploadDialog({ open, onClose, onUploaded }: { open: boolean; onClose: () => void; onUploaded: () => void }) {
@@ -35,15 +58,7 @@ export function UploadDialog({ open, onClose, onUploaded }: { open: boolean; onC
     setSummary(null);
 
     try {
-      const text = await file.text();
-      const records = file.name.toLowerCase().endsWith('.xlsx')
-        ? (() => {
-            const workbook = XLSX.read(text, { type: 'binary' });
-            const sheet = workbook.Sheets[workbook.SheetNames[0]];
-            return XLSX.utils.sheet_to_json<Record<string, string>>(sheet, { defval: '' });
-          })()
-        : Papa.parse<Record<string, string>>(text, { header: true }).data;
-
+      const records = await parseUploadFile(file);
       const normalizedRecords = records.map((row) => normalizeRecord(row as Record<string, string | undefined>));
       const validRecords: LeadInput[] = [];
       const duplicates = new Set<string>();
