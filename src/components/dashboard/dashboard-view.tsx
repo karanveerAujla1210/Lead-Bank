@@ -1,21 +1,14 @@
 "use client";
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Plus, Search, Upload, Trash2, Pencil, Download, LogOut } from 'lucide-react';
+import { Plus, Search, Upload, Download, LogOut, BarChart3 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import type { Lead, LeadStats } from '@/lib/types';
 import { LeadTable } from '@/components/dashboard/lead-table';
 import { LeadModal } from '@/components/dashboard/lead-modal';
 import { ConfirmDialog } from '@/components/dashboard/confirm-dialog';
 import { UploadDialog } from '@/components/dashboard/upload-dialog';
-
-const defaultStats = {
-  totalLeads: 0,
-  todaysLeads: 0,
-  duplicateLeads: 0,
-  latestUpload: 'No data',
-};
 
 export function DashboardView({
   stats,
@@ -39,19 +32,22 @@ export function DashboardView({
   const [deleteTarget, setDeleteTarget] = useState<Lead | null>(null);
   const [uploadOpen, setUploadOpen] = useState(false);
 
-  const fetchLeads = async (nextPage = 1, query = search) => {
+  const refreshStats = useCallback(async () => {
+    const response = await fetch('/api/stats');
+    const payload = await response.json();
+    setStatsState(payload);
+  }, []);
+
+  const fetchLeads = useCallback(async (nextPage = 1, query = search) => {
     const params = new URLSearchParams({ page: String(nextPage), search: query });
     const response = await fetch(`/api/leads?${params.toString()}`);
     const payload = await response.json();
     setLeads(payload.data ?? []);
     setTotalPages(Math.max(1, Math.ceil((payload.count ?? 0) / pageSize)));
-  };
+  }, [pageSize, search]);
 
   useEffect(() => {
-    if (!supabase) {
-      return;
-    }
-
+    if (!supabase) return;
     const channel = supabase.channel('lead_bank_changes').on(
       'postgres_changes',
       { event: '*', schema: 'public', table: 'lead_bank' },
@@ -60,18 +56,9 @@ export function DashboardView({
         refreshStats();
       },
     );
-
     channel.subscribe();
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [page, search, pageSize, supabase]);
-
-  const refreshStats = async () => {
-    const response = await fetch('/api/stats');
-    const payload = await response.json();
-    setStatsState(payload);
-  };
+    return () => { supabase.removeChannel(channel); };
+  }, [fetchLeads, page, refreshStats, search, supabase]);
 
   const handleSearch = async (value: string) => {
     setSearch(value);
@@ -112,6 +99,12 @@ export function DashboardView({
             <p className="mt-2 text-slate-600">A secure workspace for lead capture, review, and growth.</p>
           </div>
           <div className="flex flex-wrap gap-3">
+            <a
+              href="/intelligence"
+              className="inline-flex items-center rounded-xl border border-blue-200 bg-blue-50 px-4 py-2.5 font-medium text-blue-700 transition hover:bg-blue-100"
+            >
+              <BarChart3 className="mr-2 h-4 w-4" /> Loan Intelligence
+            </a>
             <button onClick={() => setUploadOpen(true)} className="inline-flex items-center rounded-xl bg-slate-900 px-4 py-2.5 font-medium text-white transition hover:bg-slate-800">
               <Upload className="mr-2 h-4 w-4" /> Upload CSV
             </button>

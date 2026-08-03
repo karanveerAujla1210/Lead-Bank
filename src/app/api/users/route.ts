@@ -1,32 +1,28 @@
 import { NextResponse } from 'next/server';
-import { createAdminClient } from '@/lib/supabase/admin';
 import { z } from 'zod';
+import { guardRequest, logAudit } from '@/lib/platform/request-guard';
+import { createUserWithRole } from '@/lib/supabase/rbac';
+import { sanitizeLog } from '@/lib/platform/auth';
 
 const userSchema = z.object({
   email: z.string().email(),
-  password: z.string().min(6),
-  role: z.enum(['superadmin', 'user']).default('user'),
+  password: z.string().min(8),
+  full_name: z.string().min(2).optional(),
+  mobile: z.string().optional(),
+  pan: z.string().optional(),
+  role: z.enum(['super_admin', 'admin', 'audit_staff', 'credit_manager', 'operations', 'viewer']).default('viewer'),
 });
 
 export async function POST(request: Request) {
+  const auth = await guardRequest(request, 'admin.manage', 'users.create');
+  if ('error' in auth) return auth.error;
+
   try {
-    const body = await request.json();
-    const { email, password, role } = userSchema.parse(body);
-    const supabase = createAdminClient();
-
-    const { data, error } = await supabase.auth.admin.createUser({
-      email,
-      password,
-      email_confirm: true,
-      user_metadata: { role },
-    });
-
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 400 });
-    }
-
-    return NextResponse.json({ user: data.user });
+    const payload = userSchema.parse(await request.json());
+    const result = await createUserWithRole(payload);
+    await logAudit(auth.supabase, auth.authUser, request, 'users.create', 'users', result.profile.id, undefined, { email: payload.email, role: payload.role });
+    return NextResponse.json({ user: result.authUser, profile: result.profile }, { status: 201 });
   } catch (error) {
-    return NextResponse.json({ error: error instanceof Error ? error.message : 'Failed to create user' }, { status: 400 });
+    return NextResponse.json({ error: error instanceof Error ? sanitizeLog(error.message) : 'Failed to create user' }, { status: 400 });
   }
 }

@@ -1,45 +1,68 @@
-# Lead Bank CRM
+# Lead Bank Loan Intelligence Platform
 
-A production-ready lead management application built with Next.js, Tailwind CSS, Supabase, and TypeScript.
+Enterprise-grade loan intelligence and lead management platform built with Next.js, Tailwind CSS, Supabase, and TypeScript.
 
-## Features
+## Architecture
 
-- Secure authentication with Supabase Auth
-- Protected dashboard and lead management workspace
-- Lead CRUD operations with soft deletes
-- Search, pagination, and export support
-- CSV and Excel upload workflow with validation and duplicate handling
-- Responsive fintech-style CRM UI
+- Frontend: Next.js + React + Tailwind CSS
+- Backend: Supabase Auth, PostgreSQL, Storage, Realtime, Edge Functions
+- Queue / async processing: Supabase Edge Functions + background processing pattern
+- ORM: Native Supabase client
+- Security: Role-based access control (RBAC), Row Level Security (RLS), signed storage URLs
+
+## Key Modules
+
+- Authentication and RBAC
+- Lead ingestion, assignment, status tracking, history, and export
+- Customer deduplication by PAN, mobile, email
+- Secure PDF/Image statement upload to Supabase Storage
+- Asynchronous statement parsing and classification pipeline
+- Transaction extraction, salary detection, loan detection, contact and UPI extraction
+- Audit logging, activity logs, system logs
+- Reports, notifications, and platform settings
 
 ## Environment variables
 
-Copy .env.example to .env.local and add your Supabase values.
+Copy `.env.example` to `.env.local` and fill in your Supabase values.
 
-## Supabase SQL
+Required variables:
 
-```sql
-create extension if not exists "uuid-ossp";
+- `NEXT_PUBLIC_SUPABASE_URL` — Supabase project URL
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY` — Supabase public anon key
+- `SUPABASE_SERVICE_ROLE_KEY` — Supabase service role key (server-only)
+- `SUPABASE_STORAGE_BUCKET_STATEMENTS` — statements storage bucket name
+- `SUPABASE_STORAGE_BUCKET_DOCUMENTS` — documents storage bucket name
+- `SUPABASE_UPLOAD_MAX_BYTES` — maximum upload size in bytes
+- `NEXT_PUBLIC_APP_NAME` — application display name
 
-create table if not exists public.lead_bank (
-  id uuid primary key default uuid_generate_v4(),
-  customer_name text not null,
-  mobile text not null unique,
-  source text not null,
-  city text not null,
-  remarks text not null,
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now(),
-  deleted_at timestamptz
-);
+## Supabase Schema
 
-create index if not exists idx_lead_bank_created_at on public.lead_bank (created_at desc);
-create index if not exists idx_lead_bank_city on public.lead_bank (city);
-create index if not exists idx_lead_bank_source on public.lead_bank (source);
-create index if not exists idx_lead_bank_deleted_at on public.lead_bank (deleted_at);
-```
+The platform schema includes:
+
+- `users`, `roles`, `permissions`, `user_roles`, `role_permissions`
+- `lead_sources`, `lead_bank`, `lead_assignments`, `lead_history`
+- `customers`, `customer_documents`
+- `bank_statements`, `statement_processing_jobs`, `statement_transactions`, `statement_analysis`
+- `salary_records`, `loan_records`, `contact_numbers`, `upi_ids`
+- `lender_master`, `lender_keywords`
+- `audit_logs`, `activity_logs`, `system_logs`
+- `reports`, `settings`, `notifications`
+
+Each table uses `uuid` primary keys, soft deletes, and auditing fields.
 
 ## Deployment
 
-1. Deploy the frontend to Vercel.
-2. Set the environment variables in Vercel.
-3. Configure Supabase Auth redirect URLs for the app domain.
+1. Deploy the frontend to Vercel using the existing Next.js app.
+2. Set production environment variables in Vercel.
+3. Provision Supabase and enable Auth, Storage, and Edge Functions.
+4. Run the SQL schema in `supabase/schema.sql` or use the migration in `supabase/migrations/20260802120000_create_lead_bank.sql`.
+5. Configure RLS and service role keys in Supabase. Do not expose `SUPABASE_SERVICE_ROLE_KEY` to the browser.
+6. Configure storage buckets and use signed URLs for all upload/download operations.
+
+## Notes
+
+- All APIs should validate authentication and permissions.
+- Sensitive storage URLs must be private and only accessible through signed URLs.
+- File uploads should validate type, size, and content before queueing processing.
+- Statement processing should be asynchronous and non-blocking.
+- Search and pagination should use indexed query fields and cursor-style patterns for scale.

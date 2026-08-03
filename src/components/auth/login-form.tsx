@@ -6,6 +6,7 @@ import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { Loader2 } from 'lucide-react';
+import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 
 const schema = z.object({
@@ -31,19 +32,8 @@ export function LoginForm() {
     setLoading(true);
     setError('');
 
-    const seededEmail = 'demo@leadbank.com';
-    const seededPassword = 'LeadBank123!';
-
-    if (values.email === seededEmail && values.password === seededPassword) {
-      document.cookie = 'leadbank_demo_auth=1; path=/; max-age=3600';
-      setLoading(false);
-      router.replace('/dashboard');
-      router.refresh();
-      return;
-    }
-
     if (!supabase) {
-      setError('Supabase is not configured yet. Use demo@leadbank.com / LeadBank123! for the local demo.');
+      setError('Supabase is not configured. Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY.');
       setLoading(false);
       return;
     }
@@ -103,6 +93,10 @@ export function LoginForm() {
         {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
         {loading ? 'Signing in...' : 'Sign in'}
       </button>
+      <div className="mt-4 flex items-center justify-between text-sm">
+        <Link href="/forgot-password" className="text-slate-400 hover:text-white">Forgot password?</Link>
+        <Link href="/mfa" className="text-slate-400 hover:text-white">Setup MFA</Link>
+      </div>
     </form>
   );
 }

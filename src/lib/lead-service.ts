@@ -21,9 +21,9 @@ function normalizeLeadPayload(input: LeadInput) {
   return {
     customer_name: input.customer_name.trim(),
     mobile: sanitizeMobile(input.mobile),
-    source: input.source.trim(),
-    city: input.city.trim(),
-    remarks: input.remarks.trim(),
+    source: (input.source ?? '').trim(),
+    city: (input.city ?? '').trim(),
+    remarks: (input.remarks ?? '').trim(),
   };
 }
 

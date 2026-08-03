@@ -5,7 +5,7 @@ import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { Loader2 } from 'lucide-react';
-import type { Lead, LeadInput } from '@/lib/types';
+import type { Lead } from '@/lib/types';
 
 const schema = z.object({
   customer_name: z.string().min(2, 'Customer name is required'),
@@ -35,9 +35,9 @@ export function LeadModal({
       reset({
         customer_name: lead.customer_name,
         mobile: lead.mobile,
-        source: lead.source,
-        city: lead.city,
-        remarks: lead.remarks,
+        source: lead.source ?? '',
+        city: lead.city ?? '',
+        remarks: lead.remarks ?? '',
       });
     }
   }, [lead, reset]);

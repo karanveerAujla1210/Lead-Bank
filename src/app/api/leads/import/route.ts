@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
-import { importLeads } from '@/lib/lead-service';
 import { z } from 'zod';
+import { guardRequest } from '@/lib/platform/request-guard';
+import { importLeads } from '@/lib/lead-service';
 
 export const maxDuration = 60;
 
@@ -13,11 +14,15 @@ const recordSchema = z.object({
 });
 
 export async function POST(request: Request) {
+  const auth = await guardRequest(request, 'leads.write', 'leads.import');
+  if ('error' in auth) return auth.error;
+
   try {
     const body = await request.json();
     const records = z.array(recordSchema).parse(body.records ?? []);
+    const invalid = Number(body.invalid ?? 0);
     const inserted = await importLeads(records);
-    return NextResponse.json({ inserted: inserted.length, duplicates: 0, invalid: 0 });
+    return NextResponse.json({ inserted: inserted.length, duplicates: 0, invalid });
   } catch (error) {
     return NextResponse.json({ error: error instanceof Error ? error.message : 'Import failed' }, { status: 400 });
   }

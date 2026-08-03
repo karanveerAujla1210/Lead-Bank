@@ -99,7 +99,7 @@ export function UploadDialog({ open, onClose, onUploaded }: { open: boolean; onC
       const response = await fetch('/api/leads/import', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ records: validRecords }),
+        body: JSON.stringify({ records: validRecords, invalid }),
       });
       const payload = await response.json();
       if (!response.ok) throw new Error(payload.error ?? 'Import failed');
