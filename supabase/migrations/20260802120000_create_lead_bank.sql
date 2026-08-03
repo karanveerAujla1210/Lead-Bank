@@ -284,6 +284,34 @@ create table if not exists public.salary_records (
   deleted_by uuid
 );
 
+create table if not exists public.lender_master (
+  id uuid primary key default gen_random_uuid(),
+  lender_name text not null unique,
+  industry text,
+  category text,
+  active boolean not null default true,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  deleted_at timestamptz,
+  created_by uuid,
+  updated_by uuid,
+  deleted_by uuid
+);
+
+create table if not exists public.lender_keywords (
+  id uuid primary key default gen_random_uuid(),
+  lender_id uuid not null references public.lender_master(id) on delete cascade,
+  keyword text not null,
+  active boolean not null default true,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  deleted_at timestamptz,
+  created_by uuid,
+  updated_by uuid,
+  deleted_by uuid,
+  unique (lender_id, keyword)
+);
+
 create table if not exists public.loan_records (
   id uuid primary key default gen_random_uuid(),
   statement_id uuid not null references public.bank_statements(id) on delete cascade,
@@ -331,34 +359,6 @@ create table if not exists public.upi_ids (
   created_by uuid,
   updated_by uuid,
   deleted_by uuid
-);
-
-create table if not exists public.lender_master (
-  id uuid primary key default gen_random_uuid(),
-  lender_name text not null unique,
-  industry text,
-  category text,
-  active boolean not null default true,
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now(),
-  deleted_at timestamptz,
-  created_by uuid,
-  updated_by uuid,
-  deleted_by uuid
-);
-
-create table if not exists public.lender_keywords (
-  id uuid primary key default gen_random_uuid(),
-  lender_id uuid not null references public.lender_master(id) on delete cascade,
-  keyword text not null,
-  active boolean not null default true,
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now(),
-  deleted_at timestamptz,
-  created_by uuid,
-  updated_by uuid,
-  deleted_by uuid,
-  constraint lender_keyword_unique unique (lender_id, lower(keyword))
 );
 
 create table if not exists public.audit_logs (
@@ -464,8 +464,6 @@ create index if not exists idx_customers_mobile on public.customers(mobile);
 create index if not exists idx_customers_email on public.customers(lower(email));
 create index if not exists idx_customers_pan on public.customers(lower(pan));
 create index if not exists idx_lead_bank_mobile on public.lead_bank(mobile);
-create index if not exists idx_lead_bank_status on public.lead_bank(status);
-create index if not exists idx_lead_bank_assigned_to on public.lead_bank(assigned_to);
 create index if not exists idx_bank_statements_customer_id on public.bank_statements(customer_id);
 create index if not exists idx_bank_statements_status on public.bank_statements(status);
 create index if not exists idx_statement_processing_jobs_status on public.statement_processing_jobs(status);
@@ -645,7 +643,7 @@ alter table public.audit_logs enable row level security;
 drop policy if exists "audit_logs_authenticated" on public.audit_logs;
 create policy "audit_logs_authenticated" on public.audit_logs for select using (
   auth.uid() is not null
-) with check (false);
+);
 
 alter table public.activity_logs enable row level security;
 drop policy if exists "activity_logs_authenticated" on public.activity_logs;

@@ -1,7 +1,7 @@
 drop policy if exists "allow_all_access" on public.lead_bank;
 
 create index if not exists activity_logs_actor_action_idx
-  on public.activity_logs (actor_user_id, action, created_at desc);
+  on public.activity_logs (user_id, activity_type, created_at desc);
 
 create index if not exists reports_status_idx
   on public.reports (status, created_at desc)
